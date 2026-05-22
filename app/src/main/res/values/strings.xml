@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WebView 浏览器</string>
+    <string name="hint_url">输入网址...</string>
+    <string name="btn_access">访问</string>
+    <string name="btn_back">←</string>
+    <string name="btn_forward">→</string>
+    <string name="btn_refresh">↻</string>
+    <string name="btn_home">⌂</string>
+</resources>

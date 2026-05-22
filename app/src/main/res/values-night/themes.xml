@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.WebViewBrowser" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/gray_button</item>
+        <item name="colorPrimaryVariant">@color/gray_dark</item>
+        <item name="colorOnPrimary">@color/gray_text</item>
+        <item name="colorSecondary">@color/gray_button</item>
+        <item name="colorOnSecondary">@color/gray_text</item>
+        <item name="android:statusBarColor">@color/gray_dark</item>
+        <item name="android:navigationBarColor">@color/gray_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>
