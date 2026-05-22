@@ -7,12 +7,15 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.WebSettings;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 
@@ -92,6 +95,14 @@ public class MainActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
             }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                super.onReceivedError(view, request, error);
+                if (request.isForMainFrame()) {
+                    Toast.makeText(MainActivity.this, "页面加载失败: " + error.getDescription(), Toast.LENGTH_SHORT).show();
+                }
+            }
         });
     }
 
@@ -118,6 +129,11 @@ public class MainActivity extends AppCompatActivity {
     private void loadUrl() {
         String url = urlInput.getText().toString().trim();
         if (!url.isEmpty()) {
+            if (!isValidUrl(url)) {
+                Toast.makeText(this, "请输入有效的网址", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
             if (!url.startsWith("http://") && !url.startsWith("https://")) {
                 url = "https://" + url;
             }
@@ -129,6 +145,14 @@ public class MainActivity extends AppCompatActivity {
             webView.loadUrl(url);
             showWebView();
         }
+    }
+
+    private boolean isValidUrl(String url) {
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            return android.util.Patterns.WEB_URL.matcher(url).matches();
+        }
+        String urlWithProtocol = "https://" + url;
+        return android.util.Patterns.WEB_URL.matcher(urlWithProtocol).matches();
     }
 
     private void showWebView() {
