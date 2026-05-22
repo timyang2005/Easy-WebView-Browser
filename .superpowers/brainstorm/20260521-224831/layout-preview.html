@@ -1,0 +1,53 @@
+<h2>Material风格布局预览</h2>
+<p class="subtitle">包含简略的导航按钮</p>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+  <div class="mockup">
+    <div class="mockup-header">浅色模式 - 蓝色主题</div>
+    <div class="mockup-body">
+      <div style="background: #FAFAFA; min-height: 200px;">
+        <div style="background: #1976D2; padding: 12px; display: flex; align-items: center; gap: 10px;">
+          <button style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 10px; border-radius: 4px; font-size: 14px;">←</button>
+          <button style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 10px; border-radius: 4px; font-size: 14px;">→</button>
+          <button style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 10px; border-radius: 4px; font-size: 14px;">↻</button>
+          <button style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 10px; border-radius: 4px; font-size: 14px;">⌂</button>
+          <div style="flex: 1; background: rgba(255,255,255,0.9); padding: 8px 12px; border-radius: 4px;">
+            <input type="text" value="https://example.com" style="width: 100%; border: none; outline: none; background: transparent; font-size: 14px;">
+          </div>
+        </div>
+        <div style="padding: 20px; text-align: center; color: #666;">
+          <p>网页内容区域</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">深色模式</div>
+    <div class="mockup-body">
+      <div style="background: #121212; min-height: 200px;">
+        <div style="background: #1F1F1F; padding: 12px; display: flex; align-items: center; gap: 10px;">
+          <button style="background: rgba(255,255,255,0.1); border: none; color: white; padding: 6px 10px; border-radius: 4px; font-size: 14px;">←</button>
+          <button style="background: rgba(255,255,255,0.1); border: none; color: white; padding: 6px 10px; border-radius: 4px; font-size: 14px;">→</button>
+          <button style="background: rgba(255,255,255,0.1); border: none; color: white; padding: 6px 10px; border-radius: 4px; font-size: 14px;">↻</button>
+          <button style="background: rgba(255,255,255,0.1); border: none; color: white; padding: 6px 10px; border-radius: 4px; font-size: 14px;">⌂</button>
+          <div style="flex: 1; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 4px;">
+            <input type="text" value="https://example.com" style="width: 100%; border: none; outline: none; background: transparent; color: white; font-size: 14px;">
+          </div>
+        </div>
+        <div style="padding: 20px; text-align: center; color: #999;">
+          <p>网页内容区域</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <p><strong>布局说明：</strong></p>
+  <ul>
+    <li>顶部导航栏：← → ↻ ⌃ + 网址输入框</li>
+    <li>按钮采用简略设计，仅图标无文字</li>
+    <li>浅色模式：蓝色顶栏，白色背景</li>
+    <li>深色模式：深灰顶栏，黑色背景</li>
+  </ul>
+</div>

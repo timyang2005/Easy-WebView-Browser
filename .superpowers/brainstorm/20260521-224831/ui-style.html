@@ -1,0 +1,53 @@
+<h2>选择UI风格</h2>
+<p class="subtitle">点击你喜欢的设计风格</p>
+
+<div class="options">
+  <div class="option" data-choice="minimal" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>极简风格</h3>
+      <p>纯白背景、细线条、无多余装饰</p>
+    </div>
+  </div>
+  <div class="option" data-choice="material" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Material风格</h3>
+      <p>Google设计语言、卡片式、阴影层次</p>
+    </div>
+  </div>
+  <div class="option" data-choice="ios" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>iOS风格</h3>
+      <p>苹果设计语言、圆角、毛玻璃效果</p>
+    </div>
+  </div>
+</div>
+
+<div class="split" style="margin-top: 30px;">
+  <div class="mockup">
+    <div class="mockup-header">极简风格预览</div>
+    <div class="mockup-body">
+      <div style="padding: 20px; background: white; text-align: center;">
+        <div style="font-size: 18px; margin-bottom: 15px; color: #333;">WebView</div>
+        <div style="border: 1px solid #eee; padding: 10px; border-radius: 2px;">
+          <input type="text" placeholder="输入网址..." style="width: 100%; border: none; outline: none;">
+        </div>
+        <button style="margin-top: 10px; padding: 8px 24px; background: #333; color: white; border: none; border-radius: 2px;">访问</button>
+      </div>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">Material风格预览</div>
+    <div class="mockup-body">
+      <div style="padding: 20px; background: #FAFAFA; text-align: center;">
+        <div style="font-size: 18px; margin-bottom: 15px; color: #1976D2;">WebView</div>
+        <div style="background: white; padding: 12px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <input type="text" placeholder="输入网址..." style="width: 100%; border: none; outline: none;">
+        </div>
+        <button style="margin-top: 10px; padding: 10px 24px; background: #1976D2; color: white; border: none; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">访问</button>
+      </div>
+    </div>
+  </div>
+</div>
