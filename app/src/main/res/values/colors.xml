@@ -12,4 +12,6 @@
     <color name="gray_text">#AAAAAA</color>
     <color name="gray_text_dark">#999999</color>
     <color name="button_shadow">#33000000</color>
+    <color name="blue_primary_90">#E61976D2</color>
 </resources>
+
