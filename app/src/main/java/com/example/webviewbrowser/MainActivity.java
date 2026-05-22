@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.webkit.WebSettings;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -58,6 +59,14 @@ public class MainActivity extends AppCompatActivity {
         restoreButtonPosition();
         updateColorsForTheme();
         
+        urlInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_GO) {
+                loadUrl();
+                return true;
+            }
+            return false;
+        });
+
         // 加载上次保存的网址
         SharedPreferences prefs = getSharedPreferences("browser_prefs", MODE_PRIVATE);
         String lastUrl = prefs.getString("last_url", "");
@@ -231,6 +240,12 @@ public class MainActivity extends AppCompatActivity {
             btnAccess.setBackgroundTintList(getResources().getColorStateList(R.color.blue_primary));
             btnAccess.setTextColor(getResources().getColor(R.color.white));
         }
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        updateColorsForTheme();
     }
 
     @Override
