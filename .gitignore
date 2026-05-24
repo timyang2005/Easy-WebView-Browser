@@ -10,3 +10,4 @@ build/
 *.ap_
 *.aab
 .superpowers/
+.atomcode/
