@@ -13,5 +13,6 @@
     <color name="gray_text_dark">#999999</color>
     <color name="button_shadow">#33000000</color>
     <color name="blue_primary_90">#E61976D2</color>
+    <color name="lock_overlay_bg">#33000000</color>
 </resources>
 

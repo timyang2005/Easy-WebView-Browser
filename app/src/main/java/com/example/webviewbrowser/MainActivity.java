@@ -1,8 +1,10 @@
 package com.example.webviewbrowser;
 
 import android.content.SharedPreferences;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -24,6 +26,8 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.view.WindowCompat;
@@ -36,15 +40,28 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout startScreen;
     private EditText urlInput;
     private Button btnAccess;
+    private Button btnOpenFile;
     private LinearLayout navButtons;
     private ImageButton btnBack;
     private ImageButton btnForward;
     private ImageButton btnRefresh;
     private ImageButton btnHome;
     private TextView titleText;
+    private View lockOverlay;
+    private ImageButton btnLock;
+    private boolean isLocked = false;
     
     private boolean isLongPress = false;
     private Handler longPressHandler = new Handler(Looper.getMainLooper());
+
+    private final ActivityResultLauncher<String[]> openFileLauncher = registerForActivityResult(
+            new ActivityResultContracts.OpenDocument(),
+            uri -> {
+                if (uri != null) {
+                    loadHtmlFile(uri);
+                }
+            }
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,12 +128,15 @@ public class MainActivity extends AppCompatActivity {
         startScreen = findViewById(R.id.start_screen);
         urlInput = findViewById(R.id.url_input);
         btnAccess = findViewById(R.id.btn_access);
+        btnOpenFile = findViewById(R.id.btn_open_file);
         navButtons = findViewById(R.id.nav_buttons);
         btnBack = findViewById(R.id.btn_back);
         btnForward = findViewById(R.id.btn_forward);
         btnRefresh = findViewById(R.id.btn_refresh);
         btnHome = findViewById(R.id.btn_home);
         titleText = findViewById(R.id.title_text);
+        lockOverlay = findViewById(R.id.lock_overlay);
+        btnLock = findViewById(R.id.btn_lock);
     }
 
     private void setupWebView() {
@@ -174,6 +194,8 @@ public class MainActivity extends AppCompatActivity {
     private void setupButtons() {
         btnAccess.setOnClickListener(v -> loadUrl());
         
+        btnOpenFile.setOnClickListener(v -> openHtmlFile());
+        
         btnBack.setOnClickListener(v -> {
             if (webView.canGoBack()) {
                 webView.goBack();
@@ -189,6 +211,8 @@ public class MainActivity extends AppCompatActivity {
         btnRefresh.setOnClickListener(v -> webView.reload());
         
         btnHome.setOnClickListener(v -> showStartScreen());
+        
+        btnLock.setOnClickListener(v -> toggleLock());
     }
     
     private void setupLongPressDrag() {
@@ -253,6 +277,31 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void openHtmlFile() {
+        openFileLauncher.launch(new String[]{"text/html"});
+    }
+
+    private void loadHtmlFile(Uri uri) {
+        try {
+            getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (SecurityException ignored) {}
+        webView.loadUrl(uri.toString());
+        showWebView();
+    }
+
+    private void toggleLock() {
+        isLocked = !isLocked;
+        if (isLocked) {
+            lockOverlay.setVisibility(View.VISIBLE);
+            btnLock.setImageResource(R.drawable.ic_lock_locked);
+            Toast.makeText(this, R.string.screen_locked, Toast.LENGTH_SHORT).show();
+        } else {
+            lockOverlay.setVisibility(View.GONE);
+            btnLock.setImageResource(R.drawable.ic_lock_unlocked);
+            Toast.makeText(this, R.string.screen_unlocked, Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void loadUrl() {
         String url = urlInput.getText().toString().trim();
         if (!url.isEmpty()) {
@@ -305,10 +354,14 @@ public class MainActivity extends AppCompatActivity {
             titleText.setTextColor(getResources().getColor(R.color.gray_text, getTheme()));
             btnAccess.setBackgroundTintList(getResources().getColorStateList(R.color.gray_button, getTheme()));
             btnAccess.setTextColor(getResources().getColor(R.color.gray_text, getTheme()));
+            btnOpenFile.setBackgroundTintList(getResources().getColorStateList(R.color.gray_button, getTheme()));
+            btnOpenFile.setTextColor(getResources().getColor(R.color.gray_text, getTheme()));
         } else {
             titleText.setTextColor(getResources().getColor(R.color.blue_primary, getTheme()));
             btnAccess.setBackgroundTintList(getResources().getColorStateList(R.color.blue_primary, getTheme()));
             btnAccess.setTextColor(getResources().getColor(R.color.white, getTheme()));
+            btnOpenFile.setBackgroundTintList(getResources().getColorStateList(R.color.blue_primary, getTheme()));
+            btnOpenFile.setTextColor(getResources().getColor(R.color.white, getTheme()));
         }
     }
 
@@ -320,6 +373,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
+        if (isLocked) {
+            return;
+        }
         if (webView.canGoBack()) {
             webView.goBack();
         } else {

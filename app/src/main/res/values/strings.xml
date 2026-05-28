@@ -7,4 +7,8 @@
     <string name="btn_forward">→</string>
     <string name="btn_refresh">↻</string>
     <string name="btn_home">⌂</string>
+    <string name="btn_open_file">打开HTML文件</string>
+    <string name="btn_lock">锁定</string>
+    <string name="screen_locked">屏幕已锁定</string>
+    <string name="screen_unlocked">屏幕已解锁</string>
 </resources>
