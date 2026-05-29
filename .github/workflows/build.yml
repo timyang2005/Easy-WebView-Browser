@@ -1,8 +1,10 @@
-name: Build APK
+name: Build and Release APK
 
 on:
   push:
     branches: [ main, master ]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -32,8 +34,51 @@ jobs:
             gradle assembleDebug
           fi
 
+      - name: Build Release APK
+        run: |
+          if [ -f gradlew ]; then
+            ./gradlew assembleRelease
+          else
+            gradle assembleRelease
+          fi
+
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/*.apk
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: app/build/outputs/apk/release/*.apk
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Debug APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-debug
+          path: apks
+
+      - name: Download Release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release
+          path: apks
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apks/*.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
