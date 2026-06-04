@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
@@ -26,6 +27,7 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.io.IOException;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -55,6 +57,9 @@ public class MainActivity extends AppCompatActivity {
     private boolean isLongPress = false;
     private Handler longPressHandler = new Handler(Looper.getMainLooper());
 
+    private LocalAssetServer localAssetServer;
+    private String localAssetBaseUrl;
+
     private final ActivityResultLauncher<String[]> openFileLauncher = registerForActivityResult(
             new ActivityResultContracts.OpenDocument(),
             uri -> {
@@ -81,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
         setupButtons();
         setupLongPressDrag();
         updateColorsForTheme();
+        startLocalAssetServer();
         
         urlInput.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_GO) {
@@ -154,6 +160,7 @@ public class MainActivity extends AppCompatActivity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
         settings.setSupportZoom(true);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         
         // 关键：让WebView延伸到安全区域外
         webView.setFitsSystemWindows(false);
@@ -296,7 +303,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadMetaCubeXD() {
-        webView.loadUrl("file:///android_asset/index.html");
+        if (localAssetBaseUrl != null) {
+            webView.loadUrl(localAssetBaseUrl + "index.html");
+        } else {
+            // 降级：如果本地服务器未启动，尝试 file:// 协议
+            webView.loadUrl("file:///android_asset/index.html");
+        }
         showWebView();
     }
 
@@ -380,6 +392,27 @@ public class MainActivity extends AppCompatActivity {
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         updateColorsForTheme();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (localAssetServer != null) {
+            localAssetServer.stop();
+        }
+    }
+
+    private void startLocalAssetServer() {
+        new Thread(() -> {
+            try {
+                localAssetServer = new LocalAssetServer(MainActivity.this);
+                localAssetBaseUrl = localAssetServer.start();
+                Log.i("MainActivity", "Local asset server: " + localAssetBaseUrl);
+            } catch (IOException e) {
+                Log.e("MainActivity", "Failed to start local asset server", e);
+                localAssetBaseUrl = null;
+            }
+        }).start();
     }
 
     @Override
