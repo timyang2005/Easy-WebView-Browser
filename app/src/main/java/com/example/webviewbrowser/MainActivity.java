@@ -56,8 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton btnLock;
     private ImageButton btnMetaCubeXD;
     private boolean isLocked = false;
-    
-    private boolean isLongPress = false;
+
     private Handler longPressHandler = new Handler(Looper.getMainLooper());
     
     // 微型状态栏相关
@@ -287,9 +286,15 @@ public class MainActivity extends AppCompatActivity {
     private void navigateFromMiniBar() {
         String url = miniStatusUrlEdit.getText().toString().trim();
         if (!url.isEmpty()) {
+            if (!isValidUrl(url)) {
+                Toast.makeText(this, "请输入有效的网址", Toast.LENGTH_SHORT).show();
+                return;
+            }
             if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("file://")) {
                 url = "https://" + url;
             }
+            SharedPreferences prefs = getSharedPreferences("browser_prefs", MODE_PRIVATE);
+            prefs.edit().putString("last_url", url).apply();
             collapseUrlEditor();
             webView.loadUrl(url);
         }
@@ -313,7 +318,7 @@ public class MainActivity extends AppCompatActivity {
     
     private String extractDomain(String url) {
         try {
-            if (url.startsWith("file:///android_asset/")) return "本地资源";
+            if (url.startsWith("file:///android_asset/") || url.startsWith(METACUBEXD_URL)) return "本地资源";
             if (url.startsWith("file://")) return "本地文件";
             Uri uri = Uri.parse(url);
             String host = uri.getHost();
@@ -476,6 +481,7 @@ public class MainActivity extends AppCompatActivity {
             private int initialX, initialY;
             private float initialTouchX, initialTouchY;
             private boolean isDragging = false;
+            private boolean isLongPress = false;
             private final int LONG_PRESS_DURATION = 500;
             
             private Runnable longPressRunnable = () -> {
@@ -644,6 +650,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        longPressHandler.removeCallbacksAndMessages(null);
         super.onDestroy();
     }
 }
