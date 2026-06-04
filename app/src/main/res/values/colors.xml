@@ -14,4 +14,5 @@
     <color name="button_shadow">#33000000</color>
     <color name="blue_primary_90">#E61976D2</color>
     <color name="lock_overlay_bg">#00000000</color>
+    <color name="mini_status_text">#CC000000</color>
 </resources>

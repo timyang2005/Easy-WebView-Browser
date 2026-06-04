@@ -6,6 +6,104 @@
     android:background="?android:attr/colorBackground"
     android:fitsSystemWindows="true">
 
+    <!-- 微型状态栏（仅全面屏设备显示） -->
+    <LinearLayout
+        android:id="@+id/mini_status_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:elevation="4dp"
+        android:background="@drawable/mini_status_bar_background">
+
+        <!-- 状态栏内容区 -->
+        <LinearLayout
+            android:id="@+id/mini_status_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <!-- HTTPS 安全标识 -->
+            <ImageView
+                android:id="@+id/mini_status_secure"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@drawable/ic_lock_insecure"
+                android:scaleType="fitCenter"
+                android:layout_marginEnd="4dp"
+                android:importantForAccessibility="no" />
+
+            <!-- 域名（点击展开完整网址） -->
+            <TextView
+                android:id="@+id/mini_status_domain"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="11sp"
+                android:textColor="@color/mini_status_text"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp" />
+
+            <!-- 网页标题 -->
+            <TextView
+                android:id="@+id/mini_status_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.5"
+                android:textSize="11sp"
+                android:textColor="@color/mini_status_text"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:gravity="end"
+                android:paddingStart="8dp"
+                android:paddingEnd="4dp" />
+        </LinearLayout>
+
+        <!-- 网址编辑区（点击域名展开） -->
+        <LinearLayout
+            android:id="@+id/mini_status_url_editor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="4dp"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/mini_status_url_edit"
+                android:layout_width="0dp"
+                android:layout_height="28dp"
+                android:layout_weight="1"
+                android:textSize="11sp"
+                android:textColor="@color/mini_status_text"
+                android:background="@drawable/mini_url_edit_background"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:singleLine="true"
+                android:imeOptions="actionGo"
+                android:inputType="textUri"
+                android:selectAllOnFocus="true" />
+        </LinearLayout>
+
+        <!-- 加载进度线 -->
+        <View
+            android:id="@+id/mini_status_progress"
+            android:layout_width="match_parent"
+            android:layout_height="1.5dp"
+            android:background="@color/blue_primary"
+            android:visibility="gone" />
+    </LinearLayout>
+
     <!-- WebView -->
     <WebView
         android:id="@+id/webView"
