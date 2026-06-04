@@ -1,10 +1,7 @@
 package com.example.webviewbrowser;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.net.Uri;
@@ -17,6 +14,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowManager;
+import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -27,6 +25,7 @@ import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -37,10 +36,6 @@ import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -65,12 +60,15 @@ public class MainActivity extends AppCompatActivity {
     
     // 微型状态栏相关
     private LinearLayout miniStatusBar;
-    private TextView miniStatusTime;
-    private TextView miniStatusBattery;
+    private LinearLayout miniStatusUrlEditor;
+    private ImageView miniStatusSecure;
+    private TextView miniStatusDomain;
+    private TextView miniStatusTitle;
+    private EditText miniStatusUrlEdit;
+    private View miniStatusProgress;
     private boolean hasDisplayCutout = false;
-    private Handler timeUpdateHandler = new Handler(Looper.getMainLooper());
-    private Runnable timeUpdateRunnable;
-    private BroadcastReceiver batteryReceiver;
+    private boolean isUrlEditorExpanded = false;
+    private String currentUrl = "";
 
     private final ActivityResultLauncher<String[]> openFileLauncher = registerForActivityResult(
             new ActivityResultContracts.OpenDocument(),
@@ -158,8 +156,12 @@ public class MainActivity extends AppCompatActivity {
         btnLock = findViewById(R.id.btn_lock);
         btnMetaCubeXD = findViewById(R.id.btn_metacubexd);
         miniStatusBar = findViewById(R.id.mini_status_bar);
-        miniStatusTime = findViewById(R.id.mini_status_time);
-        miniStatusBattery = findViewById(R.id.mini_status_battery);
+        miniStatusSecure = findViewById(R.id.mini_status_secure);
+        miniStatusDomain = findViewById(R.id.mini_status_domain);
+        miniStatusTitle = findViewById(R.id.mini_status_title);
+        miniStatusUrlEditor = findViewById(R.id.mini_status_url_editor);
+        miniStatusUrlEdit = findViewById(R.id.mini_status_url_edit);
+        miniStatusProgress = findViewById(R.id.mini_status_progress);
     }
 
     private void setupMiniStatusBar() {
@@ -168,7 +170,6 @@ public class MainActivity extends AppCompatActivity {
             WindowInsets insets = getWindowManager().getCurrentWindowMetrics().getWindowInsets();
             hasDisplayCutout = insets.getDisplayCutout() != null;
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            // Android P 使用 displayCutout 检测
             View decorView = getWindow().getDecorView();
             decorView.post(() -> {
                 WindowInsets insets = decorView.getRootWindowInsets();
@@ -183,22 +184,24 @@ public class MainActivity extends AppCompatActivity {
             updateMiniStatusBarVisibility();
         }
         
-        // 设置时间更新
-        timeUpdateRunnable = new Runnable() {
-            @Override
-            public void run() {
-                updateTime();
-                timeUpdateHandler.postDelayed(this, 1000);
-            }
-        };
+        // 点击域名展开/收起网址编辑器
+        miniStatusDomain.setOnClickListener(v -> toggleUrlEditor());
         
-        // 注册电池状态接收器
-        batteryReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                updateBattery(intent);
+        // 网址编辑器回车导航
+        miniStatusUrlEdit.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_GO) {
+                navigateFromMiniBar();
+                return true;
             }
-        };
+            return false;
+        });
+        
+        // 点击编辑器外部收起
+        miniStatusUrlEdit.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus && isUrlEditorExpanded) {
+                collapseUrlEditor();
+            }
+        });
     }
     
     private void updateMiniStatusBarVisibility() {
@@ -215,49 +218,135 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if (statusBarHeight > 0) {
                     LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) miniStatusBar.getLayoutParams();
-                    params.height = statusBarHeight;
+                    params.height = LinearLayout.LayoutParams.WRAP_CONTENT;
                     params.topMargin = 0;
                     miniStatusBar.setLayoutParams(params);
-                    miniStatusBar.setPadding(
-                        miniStatusBar.getPaddingLeft(),
-                        Math.max(0, statusBarHeight - (int)(14 * getResources().getDisplayMetrics().density)),
-                        miniStatusBar.getPaddingRight(),
-                        miniStatusBar.getPaddingBottom()
+                    // 内容区的 padding 顶部设为安全区域高度减去文字高度
+                    LinearLayout contentArea = findViewById(R.id.mini_status_content);
+                    int textHeight = (int)(14 * getResources().getDisplayMetrics().density);
+                    contentArea.setPadding(
+                        contentArea.getPaddingLeft(),
+                        Math.max(0, statusBarHeight - textHeight),
+                        contentArea.getPaddingRight(),
+                        contentArea.getPaddingBottom()
                     );
                 }
                 return insets;
             });
             decorView.requestApplyInsets();
-            
-            // 启动时间更新
-            timeUpdateHandler.post(timeUpdateRunnable);
-            // 注册电池更新
-            registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-            // 立即更新一次电池
-            try {
-                Intent batteryIntent = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-                if (batteryIntent != null) updateBattery(batteryIntent);
-            } catch (Exception ignored) {}
-            updateTime();
         } else {
             miniStatusBar.setVisibility(View.GONE);
         }
     }
     
-    private void updateTime() {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
-        miniStatusTime.setText(sdf.format(new Date()));
+    private void toggleUrlEditor() {
+        if (isUrlEditorExpanded) {
+            collapseUrlEditor();
+        } else {
+            expandUrlEditor();
+        }
     }
     
-    private void updateBattery(Intent intent) {
-        int level = intent.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1);
-        int scale = intent.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, -1);
-        int status = intent.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1);
-        if (level >= 0 && scale > 0) {
-            int pct = (int)(level * 100.0 / scale);
-            String charging = (status == android.os.BatteryManager.BATTERY_STATUS_CHARGING ||
-                              status == android.os.BatteryManager.BATTERY_STATUS_FULL) ? "⚡" : "";
-            miniStatusBattery.setText(charging + pct + "%");
+    private void expandUrlEditor() {
+        isUrlEditorExpanded = true;
+        miniStatusUrlEdit.setText(currentUrl);
+        miniStatusUrlEditor.setVisibility(View.VISIBLE);
+        miniStatusUrlEditor.setAlpha(0f);
+        miniStatusUrlEditor.animate()
+            .alpha(1f)
+            .setDuration(200)
+            .setInterpolator(new DecelerateInterpolator())
+            .start();
+        miniStatusUrlEdit.requestFocus();
+        // 弹出键盘
+        android.view.inputmethod.InputMethodManager imm = 
+            (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        imm.showSoftInput(miniStatusUrlEdit, 0);
+    }
+    
+    private void collapseUrlEditor() {
+        isUrlEditorExpanded = false;
+        miniStatusUrlEditor.animate()
+            .alpha(0f)
+            .setDuration(150)
+            .setInterpolator(new DecelerateInterpolator())
+            .withEndAction(() -> miniStatusUrlEditor.setVisibility(View.GONE))
+            .start();
+        // 收起键盘
+        android.view.inputmethod.InputMethodManager imm = 
+            (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(miniStatusUrlEdit.getWindowToken(), 0);
+    }
+    
+    private void navigateFromMiniBar() {
+        String url = miniStatusUrlEdit.getText().toString().trim();
+        if (!url.isEmpty()) {
+            if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("file://")) {
+                url = "https://" + url;
+            }
+            collapseUrlEditor();
+            webView.loadUrl(url);
+        }
+    }
+    
+    private void updateMiniStatusInfo(String url, String title) {
+        if (!hasDisplayCutout) return;
+        currentUrl = url;
+        
+        // 更新域名
+        String domain = extractDomain(url);
+        miniStatusDomain.setText(domain);
+        
+        // 更新标题
+        miniStatusTitle.setText(title);
+        
+        // 更新安全标识
+        boolean isSecure = url.startsWith("https://");
+        miniStatusSecure.setImageResource(isSecure ? R.drawable.ic_lock_secure : R.drawable.ic_lock_insecure);
+    }
+    
+    private String extractDomain(String url) {
+        try {
+            if (url.startsWith("file:///android_asset/")) return "本地资源";
+            if (url.startsWith("file://")) return "本地文件";
+            Uri uri = Uri.parse(url);
+            String host = uri.getHost();
+            if (host != null) return host;
+            return url;
+        } catch (Exception e) {
+            return url;
+        }
+    }
+    
+    private void updateProgress(int progress) {
+        if (!hasDisplayCutout) return;
+        
+        if (progress < 100) {
+            miniStatusProgress.setVisibility(View.VISIBLE);
+            // 根据进度设置宽度比例
+            int parentWidth = miniStatusBar.getWidth();
+            if (parentWidth > 0) {
+                float ratio = progress / 100f;
+                LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) miniStatusProgress.getLayoutParams();
+                params.width = (int)(parentWidth * ratio);
+                miniStatusProgress.setLayoutParams(params);
+            }
+        } else {
+            // 加载完成，进度线先满再消失
+            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) miniStatusProgress.getLayoutParams();
+            params.width = LinearLayout.LayoutParams.MATCH_PARENT;
+            miniStatusProgress.setLayoutParams(params);
+            miniStatusProgress.animate()
+                .alpha(0f)
+                .setDuration(300)
+                .withEndAction(() -> {
+                    miniStatusProgress.setVisibility(View.GONE);
+                    miniStatusProgress.setAlpha(1f);
+                    LinearLayout.LayoutParams resetParams = (LinearLayout.LayoutParams) miniStatusProgress.getLayoutParams();
+                    resetParams.width = 0;
+                    miniStatusProgress.setLayoutParams(resetParams);
+                })
+                .start();
         }
     }
 
@@ -278,14 +367,33 @@ public class MainActivity extends AppCompatActivity {
         // 关键：让WebView延伸到安全区域外
         webView.setFitsSystemWindows(false);
         
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onProgressChanged(WebView view, int newProgress) {
+                super.onProgressChanged(view, newProgress);
+                updateProgress(newProgress);
+            }
+            
+            @Override
+            public void onReceivedTitle(WebView view, String title) {
+                super.onReceivedTitle(view, title);
+                updateMiniStatusInfo(view.getUrl(), title);
+            }
+        });
         
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                updateMiniStatusInfo(url, "加载中...");
+            }
+
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 // 注入viewport meta标签和CSS来适配全面屏
                 injectFullScreenSupport(view);
+                updateMiniStatusInfo(url, view.getTitle());
             }
 
             @Override
@@ -507,6 +615,10 @@ public class MainActivity extends AppCompatActivity {
         if (isLocked) {
             return;
         }
+        if (isUrlEditorExpanded) {
+            collapseUrlEditor();
+            return;
+        }
         if (webView.canGoBack()) {
             webView.goBack();
         } else {
@@ -517,11 +629,5 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        timeUpdateHandler.removeCallbacks(timeUpdateRunnable);
-        if (batteryReceiver != null) {
-            try {
-                unregisterReceiver(batteryReceiver);
-            } catch (Exception ignored) {}
-        }
     }
 }
