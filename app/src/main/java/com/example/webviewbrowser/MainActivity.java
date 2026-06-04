@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView titleText;
     private View lockOverlay;
     private ImageButton btnLock;
+    private ImageButton btnMetaCubeXD;
     private boolean isLocked = false;
     
     private boolean isLongPress = false;
@@ -137,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
         titleText = findViewById(R.id.title_text);
         lockOverlay = findViewById(R.id.lock_overlay);
         btnLock = findViewById(R.id.btn_lock);
+        btnMetaCubeXD = findViewById(R.id.btn_metacubexd);
     }
 
     private void setupWebView() {
@@ -145,6 +147,8 @@ public class MainActivity extends AppCompatActivity {
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
+        settings.setAllowFileAccessFromFileURLs(true);
+        settings.setAllowUniversalAccessFromFileURLs(true);
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
         settings.setUseWideViewPort(true);
@@ -213,6 +217,8 @@ public class MainActivity extends AppCompatActivity {
         btnHome.setOnClickListener(v -> showStartScreen());
         
         btnLock.setOnClickListener(v -> toggleLock());
+        
+        btnMetaCubeXD.setOnClickListener(v -> loadMetaCubeXD());
     }
     
     private void setupLongPressDrag() {
@@ -286,6 +292,11 @@ public class MainActivity extends AppCompatActivity {
             getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
         } catch (SecurityException ignored) {}
         webView.loadUrl(uri.toString());
+        showWebView();
+    }
+
+    private void loadMetaCubeXD() {
+        webView.loadUrl("file:///android_asset/index.html");
         showWebView();
     }
 

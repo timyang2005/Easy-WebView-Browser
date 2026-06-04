@@ -11,4 +11,5 @@
     <string name="btn_lock">锁定</string>
     <string name="screen_locked">屏幕已锁定</string>
     <string name="screen_unlocked">屏幕已解锁</string>
+    <string name="metacubexd_name">MetaCubeXD</string>
 </resources>

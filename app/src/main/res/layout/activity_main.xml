@@ -68,7 +68,46 @@
             android:paddingLeft="40dp"
             android:paddingRight="40dp"
             android:paddingTop="12dp"
-            android:paddingBottom="12dp" />
+            android:paddingBottom="12dp"
+            android:layout_marginBottom="24dp" />
+
+        <!-- 快捷方式区域 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <!-- MetaCubeXD 快捷方式 -->
+            <LinearLayout
+                android:id="@+id/shortcut_metacubexd"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="8dp">
+
+                <ImageButton
+                    android:id="@+id/btn_metacubexd"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:contentDescription="@string/metacubexd_name"
+                    android:background="@drawable/circle_button_background"
+                    android:src="@drawable/ic_metacubexd"
+                    android:scaleType="centerInside"
+                    android:padding="4dp"
+                    android:elevation="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/metacubexd_name"
+                    android:textSize="12sp"
+                    android:textColor="@color/gray_text_dark"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 
     <!-- 前进后退按钮（药丸形状） -->
