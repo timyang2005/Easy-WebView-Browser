@@ -1,7 +1,10 @@
 package com.example.webviewbrowser;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.net.Uri;
@@ -12,6 +15,7 @@ import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.WebChromeClient;
@@ -34,6 +38,10 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
@@ -54,6 +62,15 @@ public class MainActivity extends AppCompatActivity {
     
     private boolean isLongPress = false;
     private Handler longPressHandler = new Handler(Looper.getMainLooper());
+    
+    // 微型状态栏相关
+    private LinearLayout miniStatusBar;
+    private TextView miniStatusTime;
+    private TextView miniStatusBattery;
+    private boolean hasDisplayCutout = false;
+    private Handler timeUpdateHandler = new Handler(Looper.getMainLooper());
+    private Runnable timeUpdateRunnable;
+    private BroadcastReceiver batteryReceiver;
 
     private final ActivityResultLauncher<String[]> openFileLauncher = registerForActivityResult(
             new ActivityResultContracts.OpenDocument(),
@@ -81,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
         setupButtons();
         setupLongPressDrag();
         updateColorsForTheme();
+        setupMiniStatusBar();
         
         urlInput.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_GO) {
@@ -139,6 +157,108 @@ public class MainActivity extends AppCompatActivity {
         lockOverlay = findViewById(R.id.lock_overlay);
         btnLock = findViewById(R.id.btn_lock);
         btnMetaCubeXD = findViewById(R.id.btn_metacubexd);
+        miniStatusBar = findViewById(R.id.mini_status_bar);
+        miniStatusTime = findViewById(R.id.mini_status_time);
+        miniStatusBattery = findViewById(R.id.mini_status_battery);
+    }
+
+    private void setupMiniStatusBar() {
+        // 检测是否有 display cutout（刘海/挖孔）
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            WindowInsets insets = getWindowManager().getCurrentWindowMetrics().getWindowInsets();
+            hasDisplayCutout = insets.getDisplayCutout() != null;
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            // Android P 使用 displayCutout 检测
+            View decorView = getWindow().getDecorView();
+            decorView.post(() -> {
+                WindowInsets insets = decorView.getRootWindowInsets();
+                if (insets != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    hasDisplayCutout = insets.getDisplayCutout() != null;
+                }
+                updateMiniStatusBarVisibility();
+            });
+        }
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            updateMiniStatusBarVisibility();
+        }
+        
+        // 设置时间更新
+        timeUpdateRunnable = new Runnable() {
+            @Override
+            public void run() {
+                updateTime();
+                timeUpdateHandler.postDelayed(this, 1000);
+            }
+        };
+        
+        // 注册电池状态接收器
+        batteryReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                updateBattery(intent);
+            }
+        };
+    }
+    
+    private void updateMiniStatusBarVisibility() {
+        if (hasDisplayCutout) {
+            miniStatusBar.setVisibility(View.VISIBLE);
+            // 获取安全区域顶部高度作为状态栏高度
+            View decorView = getWindow().getDecorView();
+            decorView.setOnApplyWindowInsetsListener((v, insets) -> {
+                int statusBarHeight = 0;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+                } else {
+                    statusBarHeight = insets.getSystemWindowInsetTop();
+                }
+                if (statusBarHeight > 0) {
+                    LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) miniStatusBar.getLayoutParams();
+                    params.height = statusBarHeight;
+                    params.topMargin = 0;
+                    miniStatusBar.setLayoutParams(params);
+                    miniStatusBar.setPadding(
+                        miniStatusBar.getPaddingLeft(),
+                        Math.max(0, statusBarHeight - (int)(14 * getResources().getDisplayMetrics().density)),
+                        miniStatusBar.getPaddingRight(),
+                        miniStatusBar.getPaddingBottom()
+                    );
+                }
+                return insets;
+            });
+            decorView.requestApplyInsets();
+            
+            // 启动时间更新
+            timeUpdateHandler.post(timeUpdateRunnable);
+            // 注册电池更新
+            registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+            // 立即更新一次电池
+            try {
+                Intent batteryIntent = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+                if (batteryIntent != null) updateBattery(batteryIntent);
+            } catch (Exception ignored) {}
+            updateTime();
+        } else {
+            miniStatusBar.setVisibility(View.GONE);
+        }
+    }
+    
+    private void updateTime() {
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+        miniStatusTime.setText(sdf.format(new Date()));
+    }
+    
+    private void updateBattery(Intent intent) {
+        int level = intent.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1);
+        int scale = intent.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, -1);
+        int status = intent.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1);
+        if (level >= 0 && scale > 0) {
+            int pct = (int)(level * 100.0 / scale);
+            String charging = (status == android.os.BatteryManager.BATTERY_STATUS_CHARGING ||
+                              status == android.os.BatteryManager.BATTERY_STATUS_FULL) ? "⚡" : "";
+            miniStatusBattery.setText(charging + pct + "%");
+        }
     }
 
     private void setupWebView() {
@@ -391,6 +511,17 @@ public class MainActivity extends AppCompatActivity {
             webView.goBack();
         } else {
             super.onBackPressed();
+        }
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        timeUpdateHandler.removeCallbacks(timeUpdateRunnable);
+        if (batteryReceiver != null) {
+            try {
+                unregisterReceiver(batteryReceiver);
+            } catch (Exception ignored) {}
         }
     }
 }
