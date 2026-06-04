@@ -9,16 +9,16 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
@@ -27,7 +27,6 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import java.io.IOException;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -35,6 +34,7 @@ import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.webkit.WebViewAssetLoader;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -57,8 +57,9 @@ public class MainActivity extends AppCompatActivity {
     private boolean isLongPress = false;
     private Handler longPressHandler = new Handler(Looper.getMainLooper());
 
-    private LocalAssetServer localAssetServer;
-    private String localAssetBaseUrl;
+    private WebViewAssetLoader assetLoader;
+
+    private static final String METACUBEXD_URL = "https://appassets.androidplatform.net/assets/index.html";
 
     private final ActivityResultLauncher<String[]> openFileLauncher = registerForActivityResult(
             new ActivityResultContracts.OpenDocument(),
@@ -86,7 +87,6 @@ public class MainActivity extends AppCompatActivity {
         setupButtons();
         setupLongPressDrag();
         updateColorsForTheme();
-        startLocalAssetServer();
         
         urlInput.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_GO) {
@@ -148,13 +148,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupWebView() {
+        // 初始化 WebViewAssetLoader，将 assets 目录映射到 https://appassets.androidplatform.net/assets/
+        assetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
+
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
-        settings.setAllowFileAccessFromFileURLs(true);
-        settings.setAllowUniversalAccessFromFileURLs(true);
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
         settings.setUseWideViewPort(true);
@@ -168,6 +171,12 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebChromeClient(new WebChromeClient());
         
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                // 拦截 appassets.androidplatform.net 的请求，从 assets 目录返回文件
+                return assetLoader.shouldInterceptRequest(request.getUrl());
+            }
+
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
@@ -303,12 +312,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadMetaCubeXD() {
-        if (localAssetBaseUrl != null) {
-            webView.loadUrl(localAssetBaseUrl + "index.html");
-        } else {
-            // 降级：如果本地服务器未启动，尝试 file:// 协议
-            webView.loadUrl("file:///android_asset/index.html");
-        }
+        webView.loadUrl(METACUBEXD_URL);
         showWebView();
     }
 
@@ -392,27 +396,6 @@ public class MainActivity extends AppCompatActivity {
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         updateColorsForTheme();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (localAssetServer != null) {
-            localAssetServer.stop();
-        }
-    }
-
-    private void startLocalAssetServer() {
-        new Thread(() -> {
-            try {
-                localAssetServer = new LocalAssetServer(MainActivity.this);
-                localAssetBaseUrl = localAssetServer.start();
-                Log.i("MainActivity", "Local asset server: " + localAssetBaseUrl);
-            } catch (IOException e) {
-                Log.e("MainActivity", "Failed to start local asset server", e);
-                localAssetBaseUrl = null;
-            }
-        }).start();
     }
 
     @Override
