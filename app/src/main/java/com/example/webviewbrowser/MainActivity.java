@@ -39,6 +39,9 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.webkit.WebViewAssetLoader;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
@@ -74,6 +77,31 @@ public class MainActivity extends AppCompatActivity {
     private WebViewAssetLoader assetLoader;
 
     private static final String METACUBEXD_URL = "https://appassets.androidplatform.net/assets/index.html";
+
+    /**
+     * 自定义 PathHandler，在 WebViewAssetLoader.AssetsPathHandler 基础上添加 CORS 头。
+     * MetaCubeXD 的 index.html 中所有 JS/CSS 资源都带 crossorigin 属性，
+     * 浏览器要求服务器返回 Access-Control-Allow-Origin 头才能加载 ES Module。
+     */
+    private static class CorsAssetsPathHandler implements WebViewAssetLoader.PathHandler {
+        private final WebViewAssetLoader.AssetsPathHandler delegate;
+
+        CorsAssetsPathHandler(Context context) {
+            this.delegate = new WebViewAssetLoader.AssetsPathHandler(context);
+        }
+
+        @Override
+        public WebResourceResponse handle(String path) {
+            WebResourceResponse response = delegate.handle(path);
+            if (response == null) return null;
+
+            // 添加 CORS 头，允许 ES Module 跨域加载
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Access-Control-Allow-Origin", "*");
+            response.setResponseHeaders(headers);
+            return response;
+        }
+    }
 
     private final ActivityResultLauncher<String[]> openFileLauncher = registerForActivityResult(
             new ActivityResultContracts.OpenDocument(),
@@ -363,8 +391,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupWebView() {
         // 初始化 WebViewAssetLoader，将 assets 目录映射到 https://appassets.androidplatform.net/assets/
+        // 使用 CorsAssetsPathHandler 添加 CORS 头，解决 ES Module crossorigin 加载问题
         assetLoader = new WebViewAssetLoader.Builder()
-                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .addPathHandler("/assets/", new CorsAssetsPathHandler(this))
                 .build();
 
         WebSettings settings = webView.getSettings();
