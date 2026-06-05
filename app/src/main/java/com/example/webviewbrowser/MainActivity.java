@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowManager;
@@ -251,8 +252,8 @@ public class MainActivity extends AppCompatActivity {
                     statusBarHeight = insets.getSystemWindowInsetTop();
                 }
                 if (statusBarHeight > 0) {
-                    LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) miniStatusBar.getLayoutParams();
-                    params.height = LinearLayout.LayoutParams.WRAP_CONTENT;
+                    ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) miniStatusBar.getLayoutParams();
+                    params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
                     params.topMargin = 0;
                     miniStatusBar.setLayoutParams(params);
                     // 内容区的 padding 顶部设为安全区域高度减去文字高度
